@@ -1,11 +1,12 @@
 # 界面草图
 
-此目录保存本次会话制作的两版界面预览及截图：
+此目录保存界面草图与程序实拍预览：
 
 - `light-preview-view.html` / `light-preview.png`：最初的浅色布局。
 - `tech-preview-view.html` / `tech-setup.png` / `tech-running.png` / `tech-alert.png`：深海蓝与青色强调的科技感方案，分别展示设置、计时和到点弹窗。
+- `picker-dark.png`：当前程序“设置倒计时”窗口的渲染预览。
 
-双击 `*-view.html` 可在浏览器中打开草图并切换状态。`light-preview.html` 和 `tech-preview.html` 是可编辑的原始预览。当前 `提醒小程序.exe` 尚未应用科技感方案；待外观确认后再改程序。
+双击 `*-view.html` 可在浏览器中打开早期草图并切换状态。`light-preview.html` 和 `tech-preview.html` 是可编辑的原始预览。当前程序已采用科技感界面。
 
 `light-preview-original-wrapped.html` 是首次会话预览目录中生成的原始页面归档；该目录中的旧副本已清理。
 

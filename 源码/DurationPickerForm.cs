@@ -1,11 +1,19 @@
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace ReminderMini
 {
     internal sealed class DurationPickerForm : Form
     {
+        [DllImport("user32.dll")]
+        private static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr window, int message,
+            IntPtr wParam, IntPtr lParam);
+
         private readonly Label errorLabel;
         internal readonly WheelNumberPicker HoursPicker;
         internal readonly WheelNumberPicker MinutesPicker;
@@ -17,45 +25,75 @@ namespace ReminderMini
         {
             Text = "设置倒计时";
             Font = new Font("Microsoft YaHei UI", 9.5F);
-            BackColor = TechTheme.Background;
+            BackColor = TechTheme.Border;
             ForeColor = TechTheme.Text;
             Icon = TechTheme.CreateIcon();
-            FormBorderStyle = FormBorderStyle.FixedDialog;
+            FormBorderStyle = FormBorderStyle.None;
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(540, 390);
+            ClientSize = new Size(556, 426);
+            Padding = new Padding(1);
 
-            GridSurface surface = new GridSurface();
+            TableLayoutPanel surface = new TableLayoutPanel();
             surface.Dock = DockStyle.Fill;
-            surface.Padding = new Padding(18);
+            surface.BackColor = TechTheme.Card;
+            surface.ColumnCount = 1;
+            surface.RowCount = 2;
+            surface.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
+            surface.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             Controls.Add(surface);
-            TechCard card = new TechCard();
-            card.Dock = DockStyle.Fill;
-            card.Padding = new Padding(23, 18, 23, 18);
-            surface.Controls.Add(card);
+            Panel titleBar = new Panel();
+            titleBar.Dock = DockStyle.Fill;
+            titleBar.Margin = Padding.Empty;
+            titleBar.BackColor = TechTheme.Background;
+            titleBar.Cursor = Cursors.SizeAll;
+            titleBar.MouseDown += DragWindow;
+            surface.Controls.Add(titleBar, 0, 0);
+            Label brand = new Label();
+            brand.Text = "◷  提醒小程序   /   时间设置";
+            brand.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
+            brand.ForeColor = TechTheme.Cyan;
+            brand.TextAlign = ContentAlignment.MiddleLeft;
+            brand.SetBounds(18, 0, 400, 43);
+            brand.MouseDown += DragWindow;
+            titleBar.Controls.Add(brand);
+            Label close = new Label();
+            close.Text = "×";
+            close.Font = new Font("Microsoft YaHei UI", 16F);
+            close.ForeColor = TechTheme.Muted;
+            close.TextAlign = ContentAlignment.MiddleCenter;
+            close.Cursor = Cursors.Hand;
+            close.SetBounds(ClientSize.Width - 43, 2, 40, 38);
+            close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            close.MouseEnter += delegate { close.ForeColor = TechTheme.Text; close.BackColor = TechTheme.CardHigh; };
+            close.MouseLeave += delegate { close.ForeColor = TechTheme.Muted; close.BackColor = TechTheme.Background; };
+            close.Click += delegate { DialogResult = DialogResult.Cancel; Close(); };
+            titleBar.Controls.Add(close);
 
             TableLayoutPanel layout = new TableLayoutPanel();
             layout.Dock = DockStyle.Fill;
             layout.BackColor = Color.Transparent;
+            layout.Margin = Padding.Empty;
+            layout.Padding = new Padding(28, 22, 28, 22);
             layout.ColumnCount = 1;
             layout.RowCount = 5;
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 29));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 29));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 51));
-            card.Controls.Add(layout);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+            surface.Controls.Add(layout, 0, 1);
 
             Label title = new Label();
-            title.Text = "设置倒计时";
+            title.Text = "设定提醒时长";
             title.Dock = DockStyle.Fill;
             title.ForeColor = TechTheme.Text;
-            title.Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold);
+            title.Font = new Font("Microsoft YaHei UI", 18F, FontStyle.Bold);
             layout.Controls.Add(title, 0, 0);
             Label hint = new Label();
-            hint.Text = "滚动滑轮、点击上下数字，或直接输入";
+            hint.Text = "滚动滑轮或点击上下数字，中央也可直接输入";
             hint.Dock = DockStyle.Fill;
             hint.ForeColor = TechTheme.Muted;
             layout.Controls.Add(hint, 0, 1);
@@ -75,9 +113,9 @@ namespace ReminderMini
             for (int i = 0; i < pickers.Length; i++)
             {
                 pickers[i].Dock = DockStyle.Fill;
-                pickers[i].Margin = new Padding(i == 0 ? 0 : 5, 0,
-                    i == 2 ? 0 : 5, 0);
-                pickers[i].InputChanged += delegate { errorLabel.Text = ""; };
+                pickers[i].Margin = new Padding(i == 0 ? 0 : 7, 0,
+                    i == 2 ? 0 : 7, 0);
+                pickers[i].InputChanged += delegate { ClearError(); };
                 wheels.Controls.Add(pickers[i], i, 0);
             }
             initialSeconds = Math.Max(0, Math.Min(86400, initialSeconds));
@@ -89,6 +127,7 @@ namespace ReminderMini
             errorLabel.Text = "可设置 1 秒至 24 小时";
             errorLabel.Dock = DockStyle.Fill;
             errorLabel.ForeColor = TechTheme.Dim;
+            errorLabel.TextAlign = ContentAlignment.MiddleLeft;
             layout.Controls.Add(errorLabel, 0, 3);
 
             TableLayoutPanel actions = new TableLayoutPanel();
@@ -103,19 +142,48 @@ namespace ReminderMini
             cancel.Kind = TechButtonKind.Secondary;
             cancel.DialogResult = DialogResult.Cancel;
             cancel.Dock = DockStyle.Fill;
-            cancel.Margin = new Padding(0, 5, 6, 0);
+            cancel.Margin = new Padding(0, 5, 7, 0);
             actions.Controls.Add(cancel, 0, 0);
             TechButton confirm = new TechButton();
             confirm.Text = "确认时长";
             confirm.Kind = TechButtonKind.Primary;
             confirm.Dock = DockStyle.Fill;
-            confirm.Margin = new Padding(6, 5, 0, 0);
+            confirm.Margin = new Padding(7, 5, 0, 0);
             confirm.Click += OnConfirm;
             actions.Controls.Add(confirm, 1, 0);
             AcceptButton = confirm;
             CancelButton = cancel;
-            Shown += delegate { TechTheme.UseDarkTitleBar(this); HoursPicker.FocusInput(); };
+            Shown += delegate
+            {
+                HoursPicker.Editor.Focus();
+                HoursPicker.Editor.SelectionStart = HoursPicker.Editor.TextLength;
+                HoursPicker.Editor.SelectionLength = 0;
+            };
             FormClosed += delegate { Icon.Dispose(); };
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams parameters = base.CreateParams;
+                parameters.ClassStyle |= 0x00020000;
+                return parameters;
+            }
+        }
+
+        private void DragWindow(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left) return;
+            ReleaseCapture();
+            SendMessage(Handle, 0x00A1, new IntPtr(2), IntPtr.Zero);
+        }
+
+        private void ClearError()
+        {
+            if (errorLabel == null) return;
+            errorLabel.Text = "可设置 1 秒至 24 小时";
+            errorLabel.ForeColor = TechTheme.Dim;
         }
 
         private void OnConfirm(object sender, EventArgs e)
@@ -235,7 +303,7 @@ namespace ReminderMini
         {
             editor.Width = Math.Max(20, Width - 32);
             editor.Left = (Width - editor.Width) / 2;
-            editor.Top = Math.Max(75, (Height - editor.Height) / 2);
+            editor.Top = Math.Max(0, Height / 2 - editor.Height / 2);
             Invalidate();
         }
 
@@ -263,7 +331,7 @@ namespace ReminderMini
             using (System.Drawing.Drawing2D.GraphicsPath path = TechTheme.Rounded(
                 new Rectangle(5, center - 30, Math.Max(1, Width - 11), 60), 7))
             using (SolidBrush fill = new SolidBrush(TechTheme.CardHigh))
-            using (Pen border = new Pen(TechTheme.CyanStrong))
+            using (Pen border = new Pen(TechTheme.Border))
             {
                 e.Graphics.FillPath(fill, path);
                 e.Graphics.DrawPath(border, path);
@@ -275,7 +343,7 @@ namespace ReminderMini
                     new Rectangle(0, 0, Width, 20));
                 DrawText(e.Graphics, ((value + 1) % (maximum + 1)).ToString("00"),
                     previewFont, TechTheme.Dim,
-                    new Rectangle(0, center - 58, Width, 29));
+                    new Rectangle(0, center - 63, Width, 29));
                 DrawText(e.Graphics, ((value + maximum) % (maximum + 1)).ToString("00"),
                     previewFont, TechTheme.Dim,
                     new Rectangle(0, center + 38, Width, 29));
