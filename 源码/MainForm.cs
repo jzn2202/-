@@ -46,7 +46,7 @@ namespace ReminderMini
 
         public MainForm()
         {
-            Text = "提醒小程序";
+            Text = "计时小程序";
             Font = new Font("Microsoft YaHei UI", 9.5F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = TechTheme.Background;
@@ -72,7 +72,7 @@ namespace ReminderMini
             menu.Items.Add("打开主窗口", null, delegate { ShowMainWindow(); });
             menu.Items.Add("退出", null, delegate { ExitApplication(); });
             tray.Icon = appIcon;
-            tray.Text = "提醒小程序";
+            tray.Text = "计时小程序";
             tray.ContextMenuStrip = menu;
             tray.Visible = true;
             tray.DoubleClick += delegate { ShowMainWindow(); };

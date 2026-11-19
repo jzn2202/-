@@ -52,7 +52,7 @@ namespace ReminderMini
             titleBar.MouseDown += DragWindow;
             surface.Controls.Add(titleBar, 0, 0);
             Label brand = new Label();
-            brand.Text = "◷  提醒小程序   /   时间设置";
+            brand.Text = "◷  计时小程序   /   时间设置";
             brand.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
             brand.ForeColor = TechTheme.Cyan;
             brand.TextAlign = ContentAlignment.MiddleLeft;
