@@ -7,3 +7,5 @@
 
 双击 `*-view.html` 可在浏览器中打开草图并切换状态。`light-preview.html` 和 `tech-preview.html` 是可编辑的原始预览。当前 `提醒小程序.exe` 尚未应用科技感方案；待外观确认后再改程序。
 
+`light-preview-original-wrapped.html` 是首次会话预览目录中生成的原始页面归档；该目录中的旧副本已清理。
+
