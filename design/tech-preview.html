@@ -1,0 +1,455 @@
+<div id="reminder-tech-preview" class="rt-preview">
+  <style>
+    #reminder-tech-preview {
+      --rt-bg: #0a1422;
+      --rt-panel: #101f30;
+      --rt-panel-high: #14283b;
+      --rt-line: #2c4557;
+      --rt-text: #f0f8fb;
+      --rt-muted: #a8bfca;
+      --rt-dim: #7795a4;
+      --rt-cyan: #54d8e5;
+      --rt-cyan-strong: #19bbcf;
+      --rt-cyan-soft: #133d4a;
+      --rt-danger: #f09b9b;
+      width: 100%;
+      color: var(--rt-text);
+      font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    }
+    #reminder-tech-preview * { box-sizing: border-box; }
+    #reminder-tech-preview button, #reminder-tech-preview input,
+    #reminder-tech-preview textarea { font-family: inherit; }
+    #reminder-tech-preview .preview-tabs {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      margin: 0 0 16px;
+    }
+    #reminder-tech-preview .preview-tabs button {
+      min-height: 36px; padding: 7px 16px; border-radius: 999px;
+      border: 1px solid #2d5363; background: #102533; color: #bfd5dc;
+      font-size: 13px; font-weight: 600;
+    }
+    #reminder-tech-preview .preview-tabs button[aria-pressed="true"] {
+      background: #1d6474; border-color: #54d8e5; color: #f4ffff;
+    }
+    #reminder-tech-preview .preview-stage {
+      width: 100%; padding: 18px 10px; display: flex;
+      justify-content: center; align-items: flex-start;
+    }
+    #reminder-tech-preview .app {
+      width: min(790px, 100%); position: relative; overflow: hidden;
+      border: 1px solid #365163; border-radius: 15px;
+      background: var(--rt-bg);
+      box-shadow: 0 26px 60px rgba(4, 13, 24, .30), 0 0 0 1px rgba(84, 216, 229, .08) inset;
+    }
+    #reminder-tech-preview .chrome {
+      height: 52px; display: flex; align-items: center; gap: 10px;
+      padding: 0 21px; border-bottom: 1px solid var(--rt-line);
+      background: #0c1928;
+    }
+    #reminder-tech-preview .app-icon {
+      width: 29px; height: 29px; display: grid; place-items: center;
+      border: 1px solid #3696a5; border-radius: 8px;
+      color: #8cf0f4; background: #143a49;
+    }
+    #reminder-tech-preview .app-icon svg { width: 17px; height: 17px; }
+    #reminder-tech-preview .app-name { font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+    #reminder-tech-preview .chrome-code {
+      margin-left: 3px; color: #6c95a7; font: 11px "Consolas", monospace;
+      letter-spacing: .07em;
+    }
+    #reminder-tech-preview .window-actions {
+      margin-left: auto; display: flex; gap: 18px; color: #80a0af;
+      font-size: 19px; line-height: 1; user-select: none;
+    }
+    #reminder-tech-preview .shell {
+      padding: 26px 30px 19px;
+      background:
+        linear-gradient(rgba(73, 133, 153, .065) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(73, 133, 153, .065) 1px, transparent 1px),
+        radial-gradient(circle at 3% 0%, rgba(41, 161, 181, .16), transparent 42%),
+        var(--rt-bg);
+      background-size: 28px 28px, 28px 28px, auto, auto;
+    }
+    #reminder-tech-preview .section-id {
+      display: flex; align-items: center; gap: 9px; margin-bottom: 8px;
+      color: var(--rt-cyan); font: 12px "Consolas", monospace;
+      letter-spacing: .15em;
+    }
+    #reminder-tech-preview .section-id::before {
+      content: ""; width: 20px; height: 1px; background: var(--rt-cyan);
+    }
+    #reminder-tech-preview .hero-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 14px; margin-bottom: 24px;
+    }
+    #reminder-tech-preview h2 {
+      margin: 0; font-size: 24px; line-height: 1.35; font-weight: 700;
+      letter-spacing: -.02em; color: var(--rt-text);
+    }
+    #reminder-tech-preview .hero-note { color: var(--rt-muted); font-size: 12px; line-height: 1.5; }
+    #reminder-tech-preview .phase {
+      display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+      border: 1px solid #316575; color: #9ceef2; background: #153644;
+      border-radius: 999px; padding: 5px 10px;
+      font: 12px "Consolas", "Microsoft YaHei UI", sans-serif;
+    }
+    #reminder-tech-preview .phase-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--rt-cyan);
+      box-shadow: 0 0 8px var(--rt-cyan);
+    }
+    #reminder-tech-preview .dashboard {
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      gap: 20px; align-items: stretch;
+    }
+    #reminder-tech-preview .clock-panel,
+    #reminder-tech-preview .control-panel {
+      border: 1px solid var(--rt-line); border-radius: 13px;
+      background: rgba(16, 31, 48, .94);
+    }
+    #reminder-tech-preview .clock-panel {
+      min-height: 408px; padding: 18px; display: flex; flex-direction: column;
+      align-items: center;
+      background:
+        radial-gradient(circle at center 43%, rgba(30, 130, 148, .14), transparent 54%),
+        rgba(16, 31, 48, .96);
+    }
+    #reminder-tech-preview .panel-topline {
+      align-self: stretch; display: flex; justify-content: space-between;
+      color: var(--rt-dim); font: 11px "Consolas", monospace;
+      letter-spacing: .07em;
+    }
+    #reminder-tech-preview .clock-figure {
+      width: 244px; height: 244px; max-width: 100%; flex: 0 0 auto;
+      margin: 20px 0 11px; padding: 5px; border-radius: 50%;
+      background: conic-gradient(var(--rt-cyan) var(--rt-progress, 76%), #294556 0);
+      box-shadow: 0 0 25px rgba(64, 205, 222, .12);
+    }
+    #reminder-tech-preview .clock-core {
+      width: 100%; height: 100%; border-radius: 50%;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background: #102235; border: 1px solid #35556a;
+    }
+    #reminder-tech-preview .clock-caption {
+      color: #9bbbc8; font-size: 12px; margin-bottom: 8px;
+    }
+    #reminder-tech-preview .clock-value {
+      color: #f4ffff; white-space: nowrap;
+      font: 700 clamp(27px, 4.4vw, 38px)/1.15 "Consolas", monospace;
+      letter-spacing: -.04em; font-variant-numeric: tabular-nums;
+    }
+    #reminder-tech-preview .clock-sub {
+      margin-top: 10px; font: 11px "Consolas", monospace;
+      letter-spacing: .12em; color: var(--rt-cyan);
+    }
+    #reminder-tech-preview .clock-foot {
+      align-self: stretch; margin-top: auto;
+      display: flex; justify-content: space-between;
+      border-top: 1px solid #294151; padding-top: 15px;
+      color: var(--rt-muted); font-size: 11px;
+    }
+    #reminder-tech-preview .control-panel { padding: 21px 22px 20px; }
+    #reminder-tech-preview .panel-heading {
+      color: #e7f5f8; font-size: 16px; font-weight: 700; margin: 0 0 17px;
+    }
+    #reminder-tech-preview .field-label {
+      display: block; margin: 0 0 8px; color: var(--rt-muted);
+      font-size: 12px; font-weight: 600;
+    }
+    #reminder-tech-preview .time-row { display: flex; gap: 7px; align-items: flex-end; margin-bottom: 18px; }
+    #reminder-tech-preview .time-part { flex: 1; min-width: 0; }
+    #reminder-tech-preview .time-part span {
+      display: block; color: var(--rt-dim); margin: 0 0 5px;
+      font-size: 11px;
+    }
+    #reminder-tech-preview .time-part input {
+      width: 100%; height: 45px; text-align: center;
+      border: 1px solid #3a5768; border-radius: 7px;
+      background: #0b1c2c; color: #eafdff;
+      font: 700 21px "Consolas", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    #reminder-tech-preview .time-sep {
+      padding-bottom: 9px; color: #5fa4b0; font: 24px "Consolas", monospace;
+    }
+    #reminder-tech-preview textarea {
+      display: block; width: 100%; height: 89px; resize: vertical; min-height: 70px;
+      padding: 11px 12px; border-radius: 7px; border: 1px solid #3a5768;
+      background: #0b1c2c; color: var(--rt-text);
+      font: 13px/1.5 "Microsoft YaHei UI", sans-serif;
+    }
+    #reminder-tech-preview textarea::placeholder { color: #7695a5; }
+    #reminder-tech-preview .sound-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin: 13px 0 16px;
+      color: var(--rt-muted); font-size: 12px;
+    }
+    #reminder-tech-preview .sound-row label { display: flex; align-items: center; gap: 7px; }
+    #reminder-tech-preview .sound-row svg { width: 15px; height: 15px; color: var(--rt-cyan); }
+    #reminder-tech-preview .sound-row input { width: 17px; height: 17px; accent-color: var(--rt-cyan-strong); }
+    #reminder-tech-preview .primary,
+    #reminder-tech-preview .secondary,
+    #reminder-tech-preview .quiet {
+      min-height: 43px; display: inline-flex; align-items: center; justify-content: center;
+      gap: 7px; border-radius: 7px; padding: 10px 13px;
+      font: 700 13px "Microsoft YaHei UI", sans-serif;
+    }
+    #reminder-tech-preview .primary {
+      border: 1px solid #62dce6; background: var(--rt-cyan-strong); color: #061a23;
+      box-shadow: 0 4px 18px rgba(29, 190, 209, .17);
+    }
+    #reminder-tech-preview .primary:hover { background: #54d8e5; }
+    #reminder-tech-preview .secondary {
+      color: #d5edf2; background: #1b3648; border: 1px solid #385b6b;
+    }
+    #reminder-tech-preview .quiet {
+      color: var(--rt-danger); background: transparent; border: 1px solid #5f4653;
+    }
+    #reminder-tech-preview .full { width: 100%; }
+    #reminder-tech-preview .primary svg,
+    #reminder-tech-preview .secondary svg { width: 16px; height: 16px; }
+    #reminder-tech-preview .validation { margin: -7px 0 8px; color: #ffadad; font-size: 12px; }
+    #reminder-tech-preview .current-copy {
+      min-height: 99px; padding: 14px; margin-bottom: 15px;
+      border: 1px solid #36596b; border-radius: 8px;
+      color: #e3f3f7; background: #0b1c2c;
+      line-height: 1.6; font-size: 14px; white-space: pre-wrap;
+    }
+    #reminder-tech-preview .meta-row {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 12px 0; border-top: 1px solid #2b4354;
+      color: var(--rt-muted); font-size: 12px;
+    }
+    #reminder-tech-preview .meta-row strong { color: #d9edf3; font-weight: 600; }
+    #reminder-tech-preview .run-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 17px; }
+    #reminder-tech-preview .run-actions .primary { flex: 1.2; }
+    #reminder-tech-preview .run-actions .secondary,
+    #reminder-tech-preview .run-actions .quiet { flex: 1; }
+    #reminder-tech-preview .shell-footer {
+      display: flex; justify-content: space-between; gap: 10px;
+      margin-top: 16px; color: #8aa5b3; font-size: 11px;
+    }
+    #reminder-tech-preview .shell-footer span { display: inline-flex; align-items: center; gap: 6px; }
+    #reminder-tech-preview .shell-footer svg { width: 13px; height: 13px; }
+    #reminder-tech-preview .alert-overlay {
+      position: absolute; inset: 52px 0 0; z-index: 4;
+      padding: 20px; display: flex; justify-content: center; align-items: center;
+      background: rgba(3, 10, 18, .79); backdrop-filter: blur(5px);
+    }
+    #reminder-tech-preview .alert-dialog {
+      width: min(435px, 100%); padding: 24px;
+      border: 1px solid #57c9d5; border-radius: 13px;
+      background: #102234;
+      box-shadow: 0 0 0 4px rgba(39, 160, 178, .08), 0 22px 50px rgba(0, 0, 0, .45);
+    }
+    #reminder-tech-preview .alert-icon {
+      width: 42px; height: 42px; display: grid; place-items: center;
+      margin-bottom: 15px; border: 1px solid #4bc9d6; border-radius: 10px;
+      color: #adf7fa; background: #164653;
+    }
+    #reminder-tech-preview .alert-icon svg { width: 21px; height: 21px; }
+    #reminder-tech-preview .alert-kicker {
+      color: var(--rt-cyan); font: 11px "Consolas", monospace;
+      letter-spacing: .16em; margin: 0 0 6px;
+    }
+    #reminder-tech-preview .alert-dialog h2 { margin-bottom: 10px; }
+    #reminder-tech-preview .alert-dialog p {
+      margin: 0 0 22px; max-height: 135px; overflow: auto;
+      color: #d3e8ef; line-height: 1.65; font-size: 14px;
+      white-space: pre-wrap;
+    }
+    #reminder-tech-preview [hidden] { display: none !important; }
+    @media (max-width: 700px) {
+      #reminder-tech-preview .dashboard { grid-template-columns: 1fr; }
+      #reminder-tech-preview .clock-panel { min-height: 310px; }
+      #reminder-tech-preview .clock-figure { width: 190px; height: 190px; margin: 8px 0; }
+      #reminder-tech-preview .control-panel { padding: 20px; }
+    }
+    @media (max-width: 420px) {
+      #reminder-tech-preview .preview-stage { padding: 10px 0; }
+      #reminder-tech-preview .shell { padding: 22px 17px 17px; }
+      #reminder-tech-preview .chrome-code { display: none; }
+      #reminder-tech-preview .hero-row { align-items: flex-start; flex-direction: column; gap: 9px; }
+      #reminder-tech-preview h2 { font-size: 20px; }
+      #reminder-tech-preview .clock-panel { min-height: 300px; }
+      #reminder-tech-preview .run-actions .primary { flex-basis: 100%; }
+      #reminder-tech-preview .shell-footer { flex-wrap: wrap; }
+    }
+  </style>
+
+  <div class="preview-tabs" role="group" aria-label="预览界面状态">
+    <button type="button" data-preview="setup" aria-pressed="true">设置提醒</button>
+    <button type="button" data-preview="running" aria-pressed="false">计时中</button>
+    <button type="button" data-preview="alert" aria-pressed="false">到点弹窗</button>
+  </div>
+
+  <div class="preview-stage viz-dotted-background">
+    <div class="app" aria-label="提醒小程序科技风格草图">
+      <div class="chrome">
+        <span class="app-icon"><i data-lucide="timer" aria-hidden="true"></i></span>
+        <span class="app-name">提醒小程序</span>
+        <span class="chrome-code">/ 本地计时</span>
+        <span class="window-actions" aria-hidden="true"><span>−</span><span>×</span></span>
+      </div>
+      <div class="shell">
+        <div class="section-id">单次倒计时</div>
+        <div class="hero-row">
+          <div><h2 id="rt-heading">设置下一次提醒</h2><div class="hero-note">让注意力留在当下，时间到了再处理下一件事。</div></div>
+          <span class="phase"><span class="phase-dot"></span><span id="rt-phase">待开始</span></span>
+        </div>
+
+        <div class="dashboard">
+          <section class="clock-panel" aria-label="倒计时显示">
+            <div class="panel-topline"><span>剩余时间</span><span>01 / 01</span></div>
+            <div class="clock-figure" id="rt-ring" style="--rt-progress: 100%">
+              <div class="clock-core">
+                <span class="clock-caption">距离提醒</span>
+                <span class="clock-value" id="rt-clock" aria-live="polite">00:40:00</span>
+                <span class="clock-sub" id="rt-clock-state">准备就绪</span>
+              </div>
+            </div>
+            <div class="clock-foot"><span>单次倒计时</span><span id="rt-duration-hint">40 分钟</span></div>
+          </section>
+
+          <section class="control-panel" data-panel="setup" aria-label="提醒设置">
+            <h3 class="panel-heading">配置倒计时</h3>
+            <label class="field-label" for="rt-hours">时长</label>
+            <div class="time-row">
+              <div class="time-part"><span>小时</span><input id="rt-hours" type="text" inputmode="numeric" value="00" aria-label="小时"></div>
+              <span class="time-sep" aria-hidden="true">:</span>
+              <div class="time-part"><span>分钟</span><input id="rt-minutes" type="text" inputmode="numeric" value="40" aria-label="分钟"></div>
+              <span class="time-sep" aria-hidden="true">:</span>
+              <div class="time-part"><span>秒</span><input id="rt-seconds" type="text" inputmode="numeric" value="00" aria-label="秒"></div>
+            </div>
+            <label class="field-label" for="rt-message">提醒内容（可选）</label>
+            <textarea id="rt-message" placeholder="例如：整理今天的实验记录，准备下一步。"></textarea>
+            <div class="sound-row">
+              <label for="rt-sound"><i data-lucide="volume-2" aria-hidden="true"></i> 到点播放提示音</label>
+              <input id="rt-sound" type="checkbox" checked aria-label="到点播放提示音">
+            </div>
+            <p class="validation" id="rt-validation" role="alert" hidden>请输入 1 秒到 24 小时的有效时长。</p>
+            <button class="primary full" type="button" id="rt-start"><i data-lucide="play" aria-hidden="true"></i>启动倒计时</button>
+          </section>
+
+          <section class="control-panel" data-panel="running" aria-label="计时控制" hidden>
+            <h3 class="panel-heading">当前提醒</h3>
+            <div class="field-label">到点时显示</div>
+            <div class="current-copy" id="rt-current-copy">整理今天的实验记录，准备下一步。</div>
+            <div class="meta-row"><span>计时状态</span><strong id="rt-status">进行中</strong></div>
+            <div class="meta-row"><span>提醒方式</span><strong id="rt-sound-status">弹窗 + 提示音</strong></div>
+            <div class="meta-row"><span>运行位置</span><strong>窗口 / 系统托盘</strong></div>
+            <div class="run-actions">
+              <button class="primary" type="button" id="rt-pause"><i data-lucide="pause" aria-hidden="true"></i><span id="rt-pause-label">暂停</span></button>
+              <button class="secondary" type="button" id="rt-reset">重置</button>
+              <button class="quiet" type="button" id="rt-end">结束</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="shell-footer"><span><i data-lucide="panel-bottom" aria-hidden="true"></i>关闭窗口后仍在托盘计时</span><span>本地保存 · 无需联网</span></div>
+      </div>
+
+      <div class="alert-overlay" id="rt-overlay" hidden>
+        <div class="alert-dialog" role="dialog" aria-modal="true" aria-labelledby="rt-alert-title">
+          <div class="alert-icon"><i data-lucide="bell-ring" aria-hidden="true"></i></div>
+          <div class="alert-kicker">倒计时已完成</div>
+          <h2 id="rt-alert-title">时间到了</h2>
+          <p id="rt-alert-copy">整理今天的实验记录，准备下一步。</p>
+          <button class="primary full" type="button" id="rt-ack">知道了</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('reminder-tech-preview');
+      const tabs = [...root.querySelectorAll('[data-preview]')];
+      const setup = root.querySelector('[data-panel="setup"]');
+      const running = root.querySelector('[data-panel="running"]');
+      const overlay = root.querySelector('#rt-overlay');
+      const clock = root.querySelector('#rt-clock');
+      const ring = root.querySelector('#rt-ring');
+      const hours = root.querySelector('#rt-hours');
+      const minutes = root.querySelector('#rt-minutes');
+      const seconds = root.querySelector('#rt-seconds');
+      const message = root.querySelector('#rt-message');
+      const sound = root.querySelector('#rt-sound');
+      const validation = root.querySelector('#rt-validation');
+      let paused = false;
+
+      function syncReadyClock() {
+        const h = Number(hours.value || 0), m = Number(minutes.value || 0), s = Number(seconds.value || 0);
+        const total = h * 3600 + m * 60 + s;
+        clock.textContent = [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+        ring.style.setProperty('--rt-progress', total > 0 ? '100%' : '0%');
+      }
+
+      function show(view) {
+        setup.hidden = view !== 'setup';
+        running.hidden = view === 'setup';
+        overlay.hidden = view !== 'alert';
+        root.querySelector('#rt-heading').textContent = view === 'setup' ? '设置下一次提醒' : '专注当前任务';
+        root.querySelector('#rt-phase').textContent = view === 'setup' ? '待开始' : view === 'alert' ? '已完成' : paused ? '已暂停' : '计时中';
+        root.querySelector('#rt-clock-state').textContent = view === 'setup' ? '准备就绪' : view === 'alert' ? '时间到了' : paused ? '已暂停' : '计时中';
+        if (view === 'setup') syncReadyClock();
+        if (view === 'alert') { clock.textContent = '00:00:00'; ring.style.setProperty('--rt-progress', '100%'); }
+        if (view === 'running' && clock.textContent === '00:00:00') {
+          clock.textContent = '00:30:00';
+          ring.style.setProperty('--rt-progress', '25%');
+        }
+        tabs.forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.preview === view)));
+      }
+
+      tabs.forEach(tab => tab.addEventListener('click', () => {
+        if (tab.dataset.preview === 'running' && setup.hidden === false) {
+          clock.textContent = '00:30:00';
+          ring.style.setProperty('--rt-progress', '25%');
+        }
+        show(tab.dataset.preview);
+      }));
+      root.querySelector('#rt-start').addEventListener('click', () => {
+        const parts = [hours.value, minutes.value, seconds.value];
+        const validParts = parts.every(v => /^\d*$/.test(v));
+        const h = Number(hours.value || 0), m = Number(minutes.value || 0), s = Number(seconds.value || 0);
+        const total = h * 3600 + m * 60 + s;
+        if (!validParts || m > 59 || s > 59 || total < 1 || total > 86400) {
+          validation.hidden = false;
+          return;
+        }
+        validation.hidden = true;
+        clock.textContent = [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+        ring.style.setProperty('--rt-progress', '2%');
+        const copy = message.value.trim() || '时间到了';
+        root.querySelector('#rt-current-copy').textContent = copy;
+        root.querySelector('#rt-alert-copy').textContent = copy;
+        root.querySelector('#rt-duration-hint').textContent = h ? `${h} 小时 ${m} 分钟` : m ? `${m} 分钟` : `${s} 秒`;
+        root.querySelector('#rt-sound-status').textContent = sound.checked ? '弹窗 + 提示音' : '弹窗（静音）';
+        paused = false;
+        root.querySelector('#rt-status').textContent = '进行中';
+        root.querySelector('#rt-pause-label').textContent = '暂停';
+        show('running');
+      });
+      root.querySelector('#rt-pause').addEventListener('click', () => {
+        paused = !paused;
+        root.querySelector('#rt-status').textContent = paused ? '已暂停' : '进行中';
+        root.querySelector('#rt-pause-label').textContent = paused ? '继续' : '暂停';
+        show('running');
+      });
+      root.querySelector('#rt-reset').addEventListener('click', () => {
+        show('setup');
+      });
+      root.querySelector('#rt-end').addEventListener('click', () => {
+        hours.value = ''; minutes.value = ''; seconds.value = ''; message.value = '';
+        validation.hidden = true;
+        show('setup');
+      });
+      root.querySelector('#rt-ack').addEventListener('click', () => show('setup'));
+      const initial = root.getAttribute('data-initial') || 'setup';
+      if (initial === 'running') {
+        clock.textContent = '00:30:00';
+        ring.style.setProperty('--rt-progress', '25%');
+      }
+      show(initial);
+    })();
+  </script>
+</div>
