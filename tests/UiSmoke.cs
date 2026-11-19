@@ -18,6 +18,15 @@ internal static class UiSmoke
             BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, null);
     }
 
+    private static bool ContainsText(Control root, string expected)
+    {
+        TextBox box = root as TextBox;
+        if (box != null && box.Text == expected) return true;
+        foreach (Control child in root.Controls)
+            if (ContainsText(child, expected)) return true;
+        return false;
+    }
+
     [STAThread]
     private static void Main()
     {
@@ -43,6 +52,13 @@ internal static class UiSmoke
             Console.WriteLine("主窗口已显示");
             try
             {
+                main.Size = main.MinimumSize;
+                Application.DoEvents();
+                if (Field<RingDisplay>(main, "ring").Width < 200 ||
+                    Field<TextBox>(main, "messageBox").Height < 60)
+                    throw new Exception("最小窗口尺寸下，倒计时或文字输入区过小。");
+                if (!Field<Panel>(main, "setupPanel").Visible)
+                    throw new Exception("待开始时未显示设置区。");
                 Field<TextBox>(main, "hoursBox").Text = "0";
                 Field<TextBox>(main, "minutesBox").Text = "0";
                 Field<TextBox>(main, "secondsBox").Text = "1";
@@ -53,6 +69,8 @@ internal static class UiSmoke
                 Console.WriteLine("已点击开始");
                 if (Field<TimerEngine>(main, "engine").State != TimerState.Running)
                     throw new Exception("开始按钮未启动倒计时。");
+                if (!Field<Panel>(main, "runningPanel").Visible)
+                    throw new Exception("计时中未显示操作区。");
                 Console.WriteLine("即将关闭主窗口");
                 main.Close();
                 Console.WriteLine("已关闭主窗口");
@@ -80,13 +98,8 @@ internal static class UiSmoke
                         {
                             Console.WriteLine("已发现提醒弹窗");
                             if (!form.TopMost) throw new Exception("提醒弹窗未置顶。");
-                            bool textFound = false;
-                            foreach (Control control in form.Controls)
-                            {
-                                TextBox box = control as TextBox;
-                                if (box != null && box.Text == "界面流程测试") textFound = true;
-                            }
-                            if (!textFound) throw new Exception("提醒弹窗未显示设定文字。");
+                            if (!ContainsText(form, "界面流程测试"))
+                                throw new Exception("提醒弹窗未显示设定文字。");
                             popupSeen = true;
                             form.Close();
                             break;
@@ -101,6 +114,20 @@ internal static class UiSmoke
                 if (!main.Visible) throw new Exception("无法从托盘恢复主窗口。");
                 if (Field<TextBox>(main, "messageBox").Text != "界面流程测试")
                     throw new Exception("正常提醒后未保留输入。");
+                Field<TextBox>(main, "secondsBox").Text = "10";
+                Field<Button>(main, "startButton").PerformClick();
+                Field<Button>(main, "pauseButton").PerformClick();
+                if (Field<TimerEngine>(main, "engine").State != TimerState.Paused ||
+                    Field<Button>(main, "pauseButton").Text != "继续")
+                    throw new Exception("暂停按钮状态不正确。");
+                Field<Button>(main, "pauseButton").PerformClick();
+                if (Field<TimerEngine>(main, "engine").State != TimerState.Running)
+                    throw new Exception("继续按钮未恢复计时。");
+                Field<Button>(main, "resetButton").PerformClick();
+                if (Field<TimerEngine>(main, "engine").State != TimerState.Idle ||
+                    Field<TextBox>(main, "messageBox").Text != "界面流程测试")
+                    throw new Exception("重置未保留输入并停止计时。");
+                Field<Button>(main, "startButton").PerformClick();
                 Field<Button>(main, "endButton").PerformClick();
                 if (Field<TextBox>(main, "messageBox").Text != "" ||
                     Field<TextBox>(main, "secondsBox").Text != "")
@@ -124,6 +151,6 @@ internal static class UiSmoke
         if (File.Exists(path)) File.Delete(path);
         if (failure != null) throw new Exception(failure);
         if (!completed || !popupSeen) throw new Exception("界面流程未完成。");
-        Console.WriteLine("界面流程检查通过：后台计时、弹窗、恢复窗口、清空输入。");
+        Console.WriteLine("界面流程检查通过：后台计时、弹窗、暂停继续、重置、清空输入。");
     }
 }

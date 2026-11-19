@@ -8,7 +8,7 @@ using Microsoft.Win32;
 
 namespace ReminderMini
 {
-    internal sealed class MainForm : Form
+    internal sealed partial class MainForm : Form
     {
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr handle);
@@ -21,12 +21,22 @@ namespace ReminderMini
         private TextBox secondsBox;
         private TextBox messageBox;
         private CheckBox soundBox;
-        private Label countdownLabel;
+        private TextBox runMessageBox;
+        private RingDisplay ring;
+        private Label headingLabel;
         private Label statusLabel;
+        private Label runStatusLabel;
+        private Label soundStatusLabel;
+        private Label durationHintLabel;
+        private Label validationLabel;
+        private Panel setupPanel;
+        private Panel runningPanel;
+        private TableLayoutPanel timeRow;
         private Button startButton;
         private Button pauseButton;
         private Button resetButton;
         private Button endButton;
+        private Icon appIcon;
         private bool exiting;
         private bool sessionLocked;
         private bool pendingAlarm;
@@ -38,13 +48,17 @@ namespace ReminderMini
         public MainForm()
         {
             Text = "提醒小程序";
-            Font = new Font("Microsoft YaHei UI", 10F);
-            Icon = SystemIcons.Information;
+            Font = new Font("Microsoft YaHei UI", 9.5F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = TechTheme.Background;
+            ForeColor = TechTheme.Text;
+            appIcon = TechTheme.CreateIcon();
+            Icon = appIcon;
             StartPosition = FormStartPosition.CenterScreen;
-            FormBorderStyle = FormBorderStyle.FixedSingle;
+            FormBorderStyle = FormBorderStyle.Sizable;
             MaximizeBox = false;
-            ClientSize = new Size(520, 450);
-            MinimumSize = Size;
+            ClientSize = new Size(790, 650);
+            MinimumSize = new Size(720, 610);
 
             BuildInterface();
             AppSettings settings = SettingsStore.Load();
@@ -57,7 +71,7 @@ namespace ReminderMini
             ContextMenuStrip menu = new ContextMenuStrip();
             menu.Items.Add("打开主窗口", null, delegate { ShowMainWindow(); });
             menu.Items.Add("退出", null, delegate { ExitApplication(); });
-            tray.Icon = SystemIcons.Information;
+            tray.Icon = appIcon;
             tray.Text = "提醒小程序";
             tray.ContextMenuStrip = menu;
             tray.Visible = true;
@@ -69,6 +83,7 @@ namespace ReminderMini
             SystemEvents.SessionSwitch += OnSessionSwitch;
             FormClosing += OnMainFormClosing;
             FormClosed += OnMainFormClosed;
+            Shown += delegate { TechTheme.UseDarkTitleBar(this); };
             RefreshInterface();
         }
 
@@ -80,93 +95,6 @@ namespace ReminderMini
                 return;
             }
             base.WndProc(ref m);
-        }
-
-        private void BuildInterface()
-        {
-            Label heading = new Label();
-            heading.Text = "设置倒计时";
-            heading.Font = new Font("Microsoft YaHei UI", 16F, FontStyle.Bold);
-            heading.Location = new Point(28, 20);
-            heading.Size = new Size(460, 42);
-            Controls.Add(heading);
-
-            Label durationLabel = new Label();
-            durationLabel.Text = "时长（1 秒至 24 小时）";
-            durationLabel.Location = new Point(30, 74);
-            durationLabel.Size = new Size(450, 25);
-            Controls.Add(durationLabel);
-
-            hoursBox = AddTimeBox(30, "时");
-            minutesBox = AddTimeBox(145, "分");
-            secondsBox = AddTimeBox(260, "秒");
-
-            Label messageLabel = new Label();
-            messageLabel.Text = "提醒文字（可留空）";
-            messageLabel.Location = new Point(30, 147);
-            messageLabel.Size = new Size(450, 25);
-            Controls.Add(messageLabel);
-
-            messageBox = new TextBox();
-            messageBox.Multiline = true;
-            messageBox.ScrollBars = ScrollBars.Vertical;
-            messageBox.Location = new Point(30, 176);
-            messageBox.Size = new Size(460, 112);
-            Controls.Add(messageBox);
-
-            soundBox = new CheckBox();
-            soundBox.Text = "到点播放提示音";
-            soundBox.Location = new Point(30, 300);
-            soundBox.Size = new Size(230, 27);
-            Controls.Add(soundBox);
-
-            countdownLabel = new Label();
-            countdownLabel.Font = new Font("Consolas", 25F, FontStyle.Bold);
-            countdownLabel.TextAlign = ContentAlignment.MiddleCenter;
-            countdownLabel.Location = new Point(30, 328);
-            countdownLabel.Size = new Size(330, 48);
-            Controls.Add(countdownLabel);
-
-            statusLabel = new Label();
-            statusLabel.TextAlign = ContentAlignment.MiddleLeft;
-            statusLabel.Location = new Point(370, 337);
-            statusLabel.Size = new Size(120, 28);
-            Controls.Add(statusLabel);
-
-            startButton = AddButton("开始", 30, OnStartClicked);
-            pauseButton = AddButton("暂停", 147, OnPauseClicked);
-            resetButton = AddButton("重置", 264, OnResetClicked);
-            endButton = AddButton("结束", 381, OnEndClicked);
-
-            hoursBox.TextChanged += delegate { RefreshIdleDisplay(); };
-            minutesBox.TextChanged += delegate { RefreshIdleDisplay(); };
-            secondsBox.TextChanged += delegate { RefreshIdleDisplay(); };
-        }
-
-        private TextBox AddTimeBox(int x, string unit)
-        {
-            TextBox box = new TextBox();
-            box.Location = new Point(x, 105);
-            box.Size = new Size(63, 31);
-            box.TextAlign = HorizontalAlignment.Center;
-            Controls.Add(box);
-            Label label = new Label();
-            label.Text = unit;
-            label.Location = new Point(x + 71, 109);
-            label.Size = new Size(32, 24);
-            Controls.Add(label);
-            return box;
-        }
-
-        private Button AddButton(string text, int x, EventHandler handler)
-        {
-            Button button = new Button();
-            button.Text = text;
-            button.Location = new Point(x, 394);
-            button.Size = new Size(108, 38);
-            button.Click += handler;
-            Controls.Add(button);
-            return button;
         }
 
         private void OnStartClicked(object sender, EventArgs e)
@@ -182,10 +110,11 @@ namespace ReminderMini
                 if (!DurationParser.TryParse(hoursBox.Text, minutesBox.Text, secondsBox.Text,
                     out seconds, out error))
                 {
-                    MessageBox.Show(this, error, "时长无效", MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
+                    validationLabel.Text = error;
+                    hoursBox.Focus();
                     return;
                 }
+                validationLabel.Text = "";
                 engine.Start(seconds, DateTime.UtcNow);
                 SaveSettings();
             }
@@ -195,6 +124,13 @@ namespace ReminderMini
 
         private void OnPauseClicked(object sender, EventArgs e)
         {
+            if (engine.State == TimerState.Paused)
+            {
+                engine.Resume(DateTime.UtcNow);
+                ticker.Start();
+                RefreshInterface();
+                return;
+            }
             if (engine.Pause(DateTime.UtcNow))
             {
                 HandleElapsed();
@@ -323,9 +259,9 @@ namespace ReminderMini
             minutesBox.Enabled = editable;
             secondsBox.Enabled = editable;
             messageBox.Enabled = editable;
-            startButton.Enabled = state == TimerState.Idle || state == TimerState.Paused;
-            startButton.Text = state == TimerState.Paused ? "继续" : "开始";
-            pauseButton.Enabled = state == TimerState.Running;
+            startButton.Enabled = state == TimerState.Idle;
+            pauseButton.Enabled = state == TimerState.Running || state == TimerState.Paused;
+            pauseButton.Text = state == TimerState.Paused ? "继续" : "暂停";
             resetButton.Enabled = state != TimerState.Elapsed;
             endButton.Enabled = state != TimerState.Elapsed;
             statusLabel.Text = state == TimerState.Running ? "计时中" :
@@ -342,7 +278,34 @@ namespace ReminderMini
                     ? TimeSpan.FromSeconds(seconds) : TimeSpan.Zero;
             }
             else remaining = engine.Remaining(DateTime.UtcNow);
-            countdownLabel.Text = TimerEngine.FormatRemaining(remaining);
+            bool idle = state == TimerState.Idle;
+            setupPanel.Visible = idle;
+            runningPanel.Visible = !idle;
+            headingLabel.Text = idle ? "设置下一次提醒" : "专注当前任务";
+            ring.TimeText = TimerEngine.FormatRemaining(remaining);
+            ring.StateText = idle ? "准备就绪" : statusLabel.Text;
+            int duration;
+            string errorText;
+            bool validDuration = DurationParser.TryParse(hoursBox.Text, minutesBox.Text,
+                secondsBox.Text, out duration, out errorText);
+            ring.Progress = idle || !validDuration ? 1 :
+                remaining.TotalSeconds / duration;
+            durationHintLabel.Text = validDuration ? FormatDuration(duration) : "等待设置";
+            string displayMessage = string.IsNullOrWhiteSpace(messageBox.Text) ?
+                "时间到了" : messageBox.Text;
+            if (runMessageBox.Text != displayMessage) runMessageBox.Text = displayMessage;
+            runStatusLabel.Text = state == TimerState.Running ? "进行中" :
+                state == TimerState.Paused ? "已暂停" : "时间到了";
+            soundStatusLabel.Text = soundBox.Checked ? "弹窗 + 提示音" : "仅弹窗";
+            if (!idle) runningPanel.BringToFront();
+            else setupPanel.BringToFront();
+        }
+
+        private static string FormatDuration(int seconds)
+        {
+            if (seconds % 3600 == 0) return (seconds / 3600) + " 小时";
+            if (seconds % 60 == 0) return (seconds / 60) + " 分钟";
+            return TimerEngine.FormatRemaining(TimeSpan.FromSeconds(seconds));
         }
 
         private void SaveSettings()
@@ -404,6 +367,7 @@ namespace ReminderMini
             ticker.Dispose();
             tray.Visible = false;
             tray.Dispose();
+            appIcon.Dispose();
             if (soundPlayer != null) soundPlayer.Dispose();
             if (soundStream != null) soundStream.Dispose();
         }
