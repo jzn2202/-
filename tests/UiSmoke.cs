@@ -64,6 +64,17 @@ internal static class UiSmoke
                     throw new Exception("最小窗口尺寸下，倒计时或文字输入区过小。");
                 if (!Field<Panel>(main, "setupPanel").Visible)
                     throw new Exception("待开始时未显示设置区。");
+                TextBox hoursInput = Field<TextBox>(main, "hoursBox");
+                DarkTextArea hourFrame = hoursInput.Parent as DarkTextArea;
+                if (hourFrame == null) throw new Exception("小时输入框没有可点击的外框。");
+                typeof(DarkTextArea).GetMethod("OnMouseDown",
+                    BindingFlags.NonPublic | BindingFlags.Instance).Invoke(hourFrame,
+                    new object[] { new MouseEventArgs(MouseButtons.Left, 1, 2, 2, 0) });
+                if (!hoursInput.Focused) throw new Exception("点击小时输入框边缘后未获得输入焦点。");
+                hoursInput.SelectedText = "2";
+                if (hoursInput.Text != "2")
+                    throw new Exception("小时输入框获得焦点后无法键入数字。");
+                hoursInput.Clear();
                 TextBox messageInput = Field<TextBox>(main, "messageBox");
                 if (messageInput.ScrollBars != ScrollBars.None ||
                     !(messageInput.Parent is DarkTextArea))

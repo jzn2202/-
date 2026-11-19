@@ -264,6 +264,7 @@ namespace ReminderMini
             this.multiline = multiline;
             DoubleBuffered = true;
             BackColor = TechTheme.Input;
+            Cursor = Cursors.IBeam;
             editor = new DarkScrollTextBox();
             editor.Multiline = multiline;
             editor.WordWrap = true;
@@ -284,6 +285,14 @@ namespace ReminderMini
             }
             Resize += delegate { LayoutEditor(); };
             LayoutEditor();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            // The visible time field includes padding around the native editor.
+            // Forward clicks on that padding so the entire field accepts input.
+            if (e.Button == MouseButtons.Left && editor.CanFocus) editor.Focus();
         }
 
         private void LayoutEditor()
