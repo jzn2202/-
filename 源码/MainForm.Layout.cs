@@ -115,9 +115,6 @@ namespace ReminderMini
             localHint.TextAlign = ContentAlignment.BottomRight;
             footer.Controls.Add(localHint, 1, 0);
 
-            hoursBox.TextChanged += delegate { ClearValidation(); RefreshIdleDisplay(); };
-            minutesBox.TextChanged += delegate { ClearValidation(); RefreshIdleDisplay(); };
-            secondsBox.TextChanged += delegate { ClearValidation(); RefreshIdleDisplay(); };
         }
 
         private Panel BuildSetupPanel()
@@ -126,38 +123,24 @@ namespace ReminderMini
             card.Dock = DockStyle.Fill;
             card.Padding = new Padding(21, 18, 21, 16);
             TableLayoutPanel layout = CardLayout(card, 9);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 25));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 23));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 51));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 10));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 37));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 47));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 1));
 
-            Label title = Label("配置倒计时", 14F, TechTheme.Text, true);
-            title.Dock = DockStyle.Fill;
-            layout.Controls.Add(title, 0, 0);
-            Label duration = Label("时长  ·  1 秒至 24 小时", 9F, TechTheme.Muted);
-            duration.Dock = DockStyle.Fill;
-            layout.Controls.Add(duration, 0, 1);
-
-            timeRow = new TableLayoutPanel();
-            timeRow.Dock = DockStyle.Fill;
-            timeRow.BackColor = Color.Transparent;
-            timeRow.ColumnCount = 5;
-            timeRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
-            timeRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 5));
-            timeRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
-            timeRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 5));
-            timeRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
-            layout.Controls.Add(timeRow, 0, 2);
-            hoursBox = TimeInput("小时", 0);
-            minutesBox = TimeInput("分钟", 2);
-            secondsBox = TimeInput("秒", 4);
-            AddColon(1);
-            AddColon(3);
+            setDurationButton = ActionButton("◷  设置倒计时", TechButtonKind.Secondary,
+                OnSetDurationClicked);
+            setDurationButton.Dock = DockStyle.Fill;
+            setDurationButton.Margin = new Padding(0, 0, 0, 4);
+            layout.Controls.Add(setDurationButton, 0, 0);
+            selectedDurationLabel = Label("当前时长  ·  40 分钟", 9F, TechTheme.Cyan);
+            selectedDurationLabel.Dock = DockStyle.Fill;
+            layout.Controls.Add(selectedDurationLabel, 0, 1);
 
             Label messageTitle = Label("提醒内容（可选）", 9F, TechTheme.Muted);
             messageTitle.Dock = DockStyle.Fill;
@@ -260,35 +243,6 @@ namespace ReminderMini
             return layout;
         }
 
-        private TextBox TimeInput(string unit, int column)
-        {
-            TableLayoutPanel stack = new TableLayoutPanel();
-            stack.Dock = DockStyle.Fill;
-            stack.BackColor = Color.Transparent;
-            stack.RowCount = 2;
-            stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
-            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            timeRow.Controls.Add(stack, column, 0);
-            Label label = Label(unit, 8F, TechTheme.Dim);
-            label.Dock = DockStyle.Fill;
-            stack.Controls.Add(label, 0, 0);
-            DarkTextArea input = new DarkTextArea(false);
-            input.Dock = DockStyle.Fill;
-            input.Margin = new Padding(0, 0, 0, 1);
-            TextBox box = input.Editor;
-            box.TextAlign = HorizontalAlignment.Center;
-            stack.Controls.Add(input, 0, 1);
-            return box;
-        }
-
-        private void AddColon(int column)
-        {
-            Label colon = Label(":", 15F, TechTheme.Cyan);
-            colon.Dock = DockStyle.Fill;
-            colon.TextAlign = ContentAlignment.BottomCenter;
-            timeRow.Controls.Add(colon, column, 0);
-        }
-
         private static void Fact(TableLayoutPanel table, int row, string name, out Label value)
         {
             Label label = Label(name, 8.5F, TechTheme.Muted);
@@ -323,9 +277,5 @@ namespace ReminderMini
             return button;
         }
 
-        private void ClearValidation()
-        {
-            if (validationLabel != null) validationLabel.Text = "";
-        }
     }
 }

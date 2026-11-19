@@ -32,6 +32,48 @@ internal static class UiSmoke
         return false;
     }
 
+    private static void ChooseOneSecond(MainForm main)
+    {
+        bool handled = false;
+        Timer driver = new Timer();
+        driver.Interval = 50;
+        driver.Tick += delegate
+        {
+            if (handled) return;
+            foreach (Form form in Application.OpenForms)
+            {
+                DurationPickerForm picker = form as DurationPickerForm;
+                if (picker == null) continue;
+                handled = true;
+                picker.HoursPicker.Value = 0;
+                picker.MinutesPicker.Value = 0;
+                picker.SecondsPicker.Value = 0;
+                ((Button)picker.AcceptButton).PerformClick();
+                if (picker.DialogResult == DialogResult.OK)
+                    throw new Exception("零秒时长被错误接受。");
+                typeof(WheelNumberPicker).GetMethod("OnMouseWheel",
+                    BindingFlags.NonPublic | BindingFlags.Instance).Invoke(
+                    picker.SecondsPicker,
+                    new object[] { new MouseEventArgs(MouseButtons.None, 0, 0, 0, 120) });
+                if (picker.SecondsPicker.Value != 1)
+                    throw new Exception("滚轮未调整秒数。");
+                picker.SecondsPicker.Editor.Text = "12";
+                int typedSeconds;
+                if (!picker.SecondsPicker.TryRead(out typedSeconds) || typedSeconds != 12)
+                    throw new Exception("无法直接输入秒数。");
+                picker.SecondsPicker.Editor.Text = "1";
+                ((Button)picker.AcceptButton).PerformClick();
+                break;
+            }
+        };
+        driver.Start();
+        Field<Button>(main, "setDurationButton").PerformClick();
+        driver.Stop();
+        driver.Dispose();
+        if (!handled || Field<int>(main, "selectedSeconds") != 1)
+            throw new Exception("设置倒计时窗口未保存所选时长。");
+    }
+
     [STAThread]
     private static void Main()
     {
@@ -64,17 +106,9 @@ internal static class UiSmoke
                     throw new Exception("最小窗口尺寸下，倒计时或文字输入区过小。");
                 if (!Field<Panel>(main, "setupPanel").Visible)
                     throw new Exception("待开始时未显示设置区。");
-                TextBox hoursInput = Field<TextBox>(main, "hoursBox");
-                DarkTextArea hourFrame = hoursInput.Parent as DarkTextArea;
-                if (hourFrame == null) throw new Exception("小时输入框没有可点击的外框。");
-                typeof(DarkTextArea).GetMethod("OnMouseDown",
-                    BindingFlags.NonPublic | BindingFlags.Instance).Invoke(hourFrame,
-                    new object[] { new MouseEventArgs(MouseButtons.Left, 1, 2, 2, 0) });
-                if (!hoursInput.Focused) throw new Exception("点击小时输入框边缘后未获得输入焦点。");
-                hoursInput.SelectedText = "2";
-                if (hoursInput.Text != "2")
-                    throw new Exception("小时输入框获得焦点后无法键入数字。");
-                hoursInput.Clear();
+                if (Field<int>(main, "selectedSeconds") != 2400)
+                    throw new Exception("首次默认时长不是 40 分钟。");
+                ChooseOneSecond(main);
                 TextBox messageInput = Field<TextBox>(main, "messageBox");
                 if (messageInput.ScrollBars != ScrollBars.None ||
                     !(messageInput.Parent is DarkTextArea))
@@ -85,9 +119,6 @@ internal static class UiSmoke
                 int firstVisible = SendMessage(messageInput.Handle, 0x00CE,
                     IntPtr.Zero, IntPtr.Zero).ToInt32();
                 if (firstVisible < 1) throw new Exception("长文字无法滚动查看。");
-                Field<TextBox>(main, "hoursBox").Text = "0";
-                Field<TextBox>(main, "minutesBox").Text = "0";
-                Field<TextBox>(main, "secondsBox").Text = "1";
                 Field<TextBox>(main, "messageBox").Text = "界面流程测试";
                 Field<CheckBox>(main, "soundBox").Checked = false;
                 Console.WriteLine("即将点击开始");
@@ -140,7 +171,8 @@ internal static class UiSmoke
                 if (!main.Visible) throw new Exception("无法从托盘恢复主窗口。");
                 if (Field<TextBox>(main, "messageBox").Text != "界面流程测试")
                     throw new Exception("正常提醒后未保留输入。");
-                Field<TextBox>(main, "secondsBox").Text = "10";
+                main.GetType().GetField("selectedSeconds",
+                    BindingFlags.NonPublic | BindingFlags.Instance).SetValue(main, 10);
                 Field<Button>(main, "startButton").PerformClick();
                 Field<Button>(main, "pauseButton").PerformClick();
                 if (Field<TimerEngine>(main, "engine").State != TimerState.Paused ||
@@ -156,7 +188,7 @@ internal static class UiSmoke
                 Field<Button>(main, "startButton").PerformClick();
                 Field<Button>(main, "endButton").PerformClick();
                 if (Field<TextBox>(main, "messageBox").Text != "" ||
-                    Field<TextBox>(main, "secondsBox").Text != "")
+                    Field<int>(main, "selectedSeconds") != 0)
                     throw new Exception("结束后未清空输入。");
                 if (SettingsStore.Load().Message != "")
                     throw new Exception("结束后未清空保存的输入。");

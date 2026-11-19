@@ -16,9 +16,7 @@ namespace ReminderMini
         private readonly TimerEngine engine = new TimerEngine();
         private readonly Timer ticker = new Timer();
         private readonly NotifyIcon tray = new NotifyIcon();
-        private TextBox hoursBox;
-        private TextBox minutesBox;
-        private TextBox secondsBox;
+        private int selectedSeconds;
         private TextBox messageBox;
         private CheckBox soundBox;
         private TextBox runMessageBox;
@@ -28,10 +26,11 @@ namespace ReminderMini
         private Label runStatusLabel;
         private Label soundStatusLabel;
         private Label durationHintLabel;
+        private Label selectedDurationLabel;
         private Label validationLabel;
         private Panel setupPanel;
         private Panel runningPanel;
-        private TableLayoutPanel timeRow;
+        private Button setDurationButton;
         private Button startButton;
         private Button pauseButton;
         private Button resetButton;
@@ -62,9 +61,10 @@ namespace ReminderMini
 
             BuildInterface();
             AppSettings settings = SettingsStore.Load();
-            hoursBox.Text = settings.Hours ?? "";
-            minutesBox.Text = settings.Minutes ?? "";
-            secondsBox.Text = settings.Seconds ?? "";
+            int loadedSeconds;
+            string ignoredError;
+            selectedSeconds = DurationParser.TryParse(settings.Hours, settings.Minutes,
+                settings.Seconds, out loadedSeconds, out ignoredError) ? loadedSeconds : 0;
             messageBox.Text = settings.Message ?? "";
             soundBox.Checked = settings.SoundEnabled;
 
@@ -99,26 +99,29 @@ namespace ReminderMini
 
         private void OnStartClicked(object sender, EventArgs e)
         {
-            if (engine.State == TimerState.Paused)
+            if (selectedSeconds < 1)
             {
-                engine.Resume(DateTime.UtcNow);
+                validationLabel.Text = "请先设置倒计时时长。";
+                setDurationButton.Focus();
+                return;
             }
-            else
-            {
-                int seconds;
-                string error;
-                if (!DurationParser.TryParse(hoursBox.Text, minutesBox.Text, secondsBox.Text,
-                    out seconds, out error))
-                {
-                    validationLabel.Text = error;
-                    hoursBox.Focus();
-                    return;
-                }
-                validationLabel.Text = "";
-                engine.Start(seconds, DateTime.UtcNow);
-                SaveSettings();
-            }
+            validationLabel.Text = "";
+            engine.Start(selectedSeconds, DateTime.UtcNow);
+            SaveSettings();
             ticker.Start();
+            RefreshInterface();
+        }
+
+        private void OnSetDurationClicked(object sender, EventArgs e)
+        {
+            if (engine.State != TimerState.Idle) return;
+            using (DurationPickerForm picker = new DurationPickerForm(selectedSeconds))
+            {
+                if (picker.ShowDialog(this) != DialogResult.OK) return;
+                selectedSeconds = picker.SelectedSeconds;
+            }
+            validationLabel.Text = "";
+            SaveSettings();
             RefreshInterface();
         }
 
@@ -154,9 +157,7 @@ namespace ReminderMini
             ticker.Stop();
             pendingAlarm = false;
             engine.Cancel();
-            hoursBox.Clear();
-            minutesBox.Clear();
-            secondsBox.Clear();
+            selectedSeconds = 0;
             messageBox.Clear();
             SaveSettings();
             RefreshInterface();
@@ -246,18 +247,11 @@ namespace ReminderMini
             }
         }
 
-        private void RefreshIdleDisplay()
-        {
-            if (engine.State == TimerState.Idle) RefreshInterface();
-        }
-
         private void RefreshInterface()
         {
             TimerState state = engine.State;
             bool editable = state == TimerState.Idle;
-            hoursBox.Enabled = editable;
-            minutesBox.Enabled = editable;
-            secondsBox.Enabled = editable;
+            setDurationButton.Enabled = editable;
             messageBox.Enabled = editable;
             startButton.Enabled = state == TimerState.Idle;
             pauseButton.Enabled = state == TimerState.Running || state == TimerState.Paused;
@@ -268,29 +262,20 @@ namespace ReminderMini
                 state == TimerState.Paused ? "已暂停" :
                 state == TimerState.Elapsed ? "时间到了" : "等待开始";
 
-            TimeSpan remaining;
-            if (state == TimerState.Idle)
-            {
-                int seconds;
-                string error;
-                remaining = DurationParser.TryParse(hoursBox.Text, minutesBox.Text,
-                    secondsBox.Text, out seconds, out error)
-                    ? TimeSpan.FromSeconds(seconds) : TimeSpan.Zero;
-            }
-            else remaining = engine.Remaining(DateTime.UtcNow);
+            TimeSpan remaining = state == TimerState.Idle ?
+                TimeSpan.FromSeconds(selectedSeconds) : engine.Remaining(DateTime.UtcNow);
             bool idle = state == TimerState.Idle;
             setupPanel.Visible = idle;
             runningPanel.Visible = !idle;
             headingLabel.Text = idle ? "设置下一次提醒" : "专注当前任务";
             ring.TimeText = TimerEngine.FormatRemaining(remaining);
             ring.StateText = idle ? "准备就绪" : statusLabel.Text;
-            int duration;
-            string errorText;
-            bool validDuration = DurationParser.TryParse(hoursBox.Text, minutesBox.Text,
-                secondsBox.Text, out duration, out errorText);
-            ring.Progress = idle || !validDuration ? 1 :
-                remaining.TotalSeconds / duration;
-            durationHintLabel.Text = validDuration ? FormatDuration(duration) : "等待设置";
+            ring.Progress = idle || selectedSeconds == 0 ? 1 :
+                remaining.TotalSeconds / selectedSeconds;
+            string durationText = selectedSeconds > 0 ?
+                FormatDuration(selectedSeconds) : "尚未设置";
+            durationHintLabel.Text = selectedSeconds > 0 ? durationText : "等待设置";
+            selectedDurationLabel.Text = "当前时长  ·  " + durationText;
             string displayMessage = string.IsNullOrWhiteSpace(messageBox.Text) ?
                 "时间到了" : messageBox.Text;
             if (runMessageBox.Text != displayMessage) runMessageBox.Text = displayMessage;
@@ -311,9 +296,9 @@ namespace ReminderMini
         private void SaveSettings()
         {
             AppSettings settings = new AppSettings();
-            settings.Hours = hoursBox.Text;
-            settings.Minutes = minutesBox.Text;
-            settings.Seconds = secondsBox.Text;
+            settings.Hours = selectedSeconds > 0 ? (selectedSeconds / 3600).ToString() : "";
+            settings.Minutes = selectedSeconds > 0 ? ((selectedSeconds / 60) % 60).ToString() : "";
+            settings.Seconds = selectedSeconds > 0 ? (selectedSeconds % 60).ToString() : "";
             settings.Message = messageBox.Text;
             settings.SoundEnabled = soundBox.Checked;
             try { SettingsStore.Save(settings); }
