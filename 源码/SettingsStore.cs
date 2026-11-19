@@ -24,10 +24,13 @@ namespace ReminderMini
 
     internal static class SettingsStore
     {
+        internal static string PathOverride { get; set; }
+
         private static string PathName
         {
             get
             {
+                if (!string.IsNullOrEmpty(PathOverride)) return PathOverride;
                 string folder = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "ReminderMini");
@@ -61,8 +64,8 @@ namespace ReminderMini
             {
                 new XmlSerializer(typeof(AppSettings)).Serialize(stream, settings);
             }
-            if (File.Exists(path)) File.Replace(temporary, path, null);
-            else File.Move(temporary, path);
+            File.Copy(temporary, path, true);
+            File.Delete(temporary);
         }
     }
 }

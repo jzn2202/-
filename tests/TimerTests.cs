@@ -67,6 +67,15 @@ internal static class TimerTests
             Assert(restored.Message == settings.Message && !restored.SoundEnabled,
                 "中文多行设置保存与读取");
         }
+        string settingsPath = Path.Combine(Path.GetTempPath(), "ReminderMiniSettingsTest_" +
+            Guid.NewGuid().ToString("N") + ".xml");
+        SettingsStore.PathOverride = settingsPath;
+        SettingsStore.Save(settings);
+        settings.Message = "修改后的提醒";
+        SettingsStore.Save(settings);
+        Assert(SettingsStore.Load().Message == "修改后的提醒", "重复保存设置");
+        File.Delete(settingsPath);
+        SettingsStore.PathOverride = null;
         Console.WriteLine("通过 " + checks + " 项计时检查。");
     }
 }

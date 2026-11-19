@@ -15,6 +15,6 @@
 
 ## 构建
 
-技术栈为 C#、.NET Framework 4.8、Windows Forms。Windows 10 22H2 已内置 .NET Framework 4.8。本机可直接使用系统自带 C# 编译器。运行 `./build.ps1` 会在仓库根目录生成 `提醒小程序.exe`，运行 `./test.ps1` 可检查时长解析和计时状态。生成的程序文件不纳入 Git，源码和构建脚本保留在仓库中。
+技术栈为 C#、.NET Framework 4.8、Windows Forms。Windows 10 22H2 已内置 .NET Framework 4.8。本机可直接使用系统自带 C# 编译器。运行 `./build.ps1` 会在仓库根目录生成 `提醒小程序.exe`。运行 `./test.ps1` 可检查时长解析、计时状态与设置保存；运行 `./test-ui.ps1` 可检查后台计时、提醒弹窗和窗口恢复。生成的程序文件不纳入 Git，源码和构建脚本保留在仓库中。
 
 置顶提醒针对正常桌面窗口；Windows 锁屏界面和独占全屏程序可能限制其他窗口显示。
