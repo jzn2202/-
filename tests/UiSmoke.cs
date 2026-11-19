@@ -1,11 +1,16 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using ReminderMini;
 
 internal static class UiSmoke
 {
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr window, int message,
+        IntPtr wParam, IntPtr lParam);
+
     private static T Field<T>(object target, string name)
     {
         return (T)target.GetType().GetField(name,
@@ -59,6 +64,16 @@ internal static class UiSmoke
                     throw new Exception("最小窗口尺寸下，倒计时或文字输入区过小。");
                 if (!Field<Panel>(main, "setupPanel").Visible)
                     throw new Exception("待开始时未显示设置区。");
+                TextBox messageInput = Field<TextBox>(main, "messageBox");
+                if (messageInput.ScrollBars != ScrollBars.None ||
+                    !(messageInput.Parent is DarkTextArea))
+                    throw new Exception("提醒文字未使用深色滚动条。");
+                messageInput.Text = string.Join("\r\n", new string[40]).Replace("\r\n", "测试行\r\n");
+                Application.DoEvents();
+                SendMessage(messageInput.Handle, 0x00B6, IntPtr.Zero, new IntPtr(8));
+                int firstVisible = SendMessage(messageInput.Handle, 0x00CE,
+                    IntPtr.Zero, IntPtr.Zero).ToInt32();
+                if (firstVisible < 1) throw new Exception("长文字无法滚动查看。");
                 Field<TextBox>(main, "hoursBox").Text = "0";
                 Field<TextBox>(main, "minutesBox").Text = "0";
                 Field<TextBox>(main, "secondsBox").Text = "1";

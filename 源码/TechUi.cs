@@ -128,6 +128,53 @@ namespace ReminderMini
 
     internal enum TechButtonKind { Primary, Secondary, Danger }
 
+    internal sealed class TechCheckBox : CheckBox
+    {
+        public TechCheckBox()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer, true);
+            BackColor = TechTheme.Card;
+            ForeColor = TechTheme.Text;
+            Cursor = Cursors.Hand;
+        }
+
+        protected override void OnCheckedChanged(EventArgs e)
+        {
+            base.OnCheckedChanged(e);
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(TechTheme.Card);
+            Rectangle box = new Rectangle(1, Math.Max(1, (Height - 16) / 2), 15, 15);
+            using (SolidBrush fill = new SolidBrush(Checked ? TechTheme.CyanStrong : TechTheme.Input))
+            using (Pen border = new Pen(Checked ? TechTheme.Cyan : TechTheme.Border))
+            {
+                e.Graphics.FillRectangle(fill, box);
+                e.Graphics.DrawRectangle(border, box);
+            }
+            if (Checked)
+            {
+                using (Pen mark = new Pen(Color.FromArgb(6, 26, 35), 2F))
+                {
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    e.Graphics.DrawLines(mark, new Point[] {
+                        new Point(4, box.Top + 8), new Point(7, box.Top + 11),
+                        new Point(13, box.Top + 4) });
+                }
+            }
+            TextRenderer.DrawText(e.Graphics, Text, Font,
+                new Rectangle(22, 0, Math.Max(0, Width - 22), Height), ForeColor,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left |
+                TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            if (Focused && ShowFocusCues)
+                ControlPaint.DrawFocusRectangle(e.Graphics,
+                    new Rectangle(21, 2, Math.Max(1, Width - 22), Math.Max(1, Height - 4)));
+        }
+    }
+
     internal sealed class TechButton : Button
     {
         private bool hovering;
@@ -166,6 +213,8 @@ namespace ReminderMini
 
         protected override void OnPaint(PaintEventArgs e)
         {
+            // The unpainted corners otherwise expose Button's default light background.
+            e.Graphics.Clear(TechTheme.Card);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Color fill = Kind == TechButtonKind.Primary ? TechTheme.CyanStrong :
                 Kind == TechButtonKind.Danger ? TechTheme.Card : TechTheme.CardHigh;
@@ -199,6 +248,199 @@ namespace ReminderMini
             if (Focused && ShowFocusCues)
                 ControlPaint.DrawFocusRectangle(e.Graphics,
                     Rectangle.Inflate(ClientRectangle, -5, -5), foreground, fill);
+        }
+    }
+
+    internal sealed class DarkTextArea : Panel
+    {
+        private readonly DarkScrollTextBox editor;
+        private readonly DarkScrollTrack track;
+        private readonly bool multiline;
+
+        public TextBox Editor { get { return editor; } }
+
+        public DarkTextArea(bool multiline)
+        {
+            this.multiline = multiline;
+            DoubleBuffered = true;
+            BackColor = TechTheme.Input;
+            editor = new DarkScrollTextBox();
+            editor.Multiline = multiline;
+            editor.WordWrap = true;
+            editor.ScrollBars = ScrollBars.None;
+            editor.BorderStyle = BorderStyle.None;
+            editor.BackColor = TechTheme.Input;
+            editor.ForeColor = TechTheme.Text;
+            editor.Font = multiline ? new Font("Microsoft YaHei UI", 10F) :
+                new Font("Consolas", 14F, FontStyle.Bold);
+            Controls.Add(editor);
+            if (multiline)
+            {
+                track = new DarkScrollTrack(editor);
+                Controls.Add(track);
+                editor.ScrollPositionChanged += delegate { track.Invalidate(); };
+                editor.TextChanged += delegate { track.Invalidate(); };
+                editor.Resize += delegate { track.Invalidate(); };
+            }
+            Resize += delegate { LayoutEditor(); };
+            LayoutEditor();
+        }
+
+        private void LayoutEditor()
+        {
+            if (multiline)
+            {
+                editor.SetBounds(10, 8, Math.Max(20, Width - 32), Math.Max(20, Height - 16));
+                track.SetBounds(Math.Max(0, Width - 18), 6, 12, Math.Max(20, Height - 12));
+                track.Invalidate();
+            }
+            else
+            {
+                editor.Width = Math.Max(20, Width - 14);
+                editor.Left = 7;
+                editor.Top = Math.Max(2, (Height - editor.Height) / 2);
+            }
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            using (Pen pen = new Pen(TechTheme.Border))
+                e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
+        }
+    }
+
+    internal sealed class DarkScrollTextBox : TextBox
+    {
+        public event EventHandler ScrollPositionChanged;
+
+        protected override void WndProc(ref Message message)
+        {
+            int code = message.Msg;
+            base.WndProc(ref message);
+            if (code == 0x0115 || code == 0x020A || code == 0x0100 ||
+                code == 0x0102 || code == 0x0005)
+            {
+                EventHandler handler = ScrollPositionChanged;
+                if (handler != null) handler(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    internal sealed class DarkScrollTrack : Control
+    {
+        private const int GetLineCount = 0x00BA;
+        private const int GetFirstLine = 0x00CE;
+        private const int LineScroll = 0x00B6;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr window, int message,
+            IntPtr wParam, IntPtr lParam);
+
+        private readonly TextBox editor;
+        private bool dragging;
+        private int dragOffset;
+
+        public DarkScrollTrack(TextBox editor)
+        {
+            this.editor = editor;
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer, true);
+            BackColor = TechTheme.Input;
+            Cursor = Cursors.Hand;
+        }
+
+        private int TotalLines
+        {
+            get { return editor.IsHandleCreated ?
+                Math.Max(1, SendMessage(editor.Handle, GetLineCount, IntPtr.Zero,
+                    IntPtr.Zero).ToInt32()) : 1; }
+        }
+
+        private int VisibleLines
+        {
+            get { return Math.Max(1, editor.ClientSize.Height / Math.Max(1, editor.Font.Height)); }
+        }
+
+        private int FirstLine
+        {
+            get { return editor.IsHandleCreated ?
+                SendMessage(editor.Handle, GetFirstLine, IntPtr.Zero,
+                    IntPtr.Zero).ToInt32() : 0; }
+        }
+
+        private Rectangle Thumb(int total, int visible, int first)
+        {
+            int usable = Math.Max(1, Height - 8);
+            int thumbHeight = total <= visible ? usable :
+                Math.Max(22, (int)Math.Round((double)usable * visible / total));
+            thumbHeight = Math.Min(usable, thumbHeight);
+            int max = Math.Max(0, total - visible);
+            int top = 4 + (max == 0 ? 0 :
+                (int)Math.Round((double)(usable - thumbHeight) * Math.Min(first, max) / max));
+            return new Rectangle(3, top, Math.Max(3, Width - 6), thumbHeight);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(BackColor);
+            int total = TotalLines;
+            int visible = VisibleLines;
+            using (SolidBrush rail = new SolidBrush(Color.FromArgb(32, 57, 72)))
+                e.Graphics.FillRectangle(rail, Width / 2 - 2, 4, 4, Math.Max(1, Height - 8));
+            using (SolidBrush thumb = new SolidBrush(total > visible ?
+                TechTheme.CyanStrong : Color.FromArgb(63, 102, 117)))
+                e.Graphics.FillRectangle(thumb, Thumb(total, visible, FirstLine));
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button != MouseButtons.Left) return;
+            Rectangle thumb = Thumb(TotalLines, VisibleLines, FirstLine);
+            dragOffset = thumb.Contains(e.Location) ? e.Y - thumb.Top : thumb.Height / 2;
+            dragging = true;
+            Capture = true;
+            ScrollTo(e.Y - dragOffset);
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            if (dragging) ScrollTo(e.Y - dragOffset);
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            dragging = false;
+            Capture = false;
+            base.OnMouseUp(e);
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            ScrollBy(-Math.Sign(e.Delta) * 3);
+        }
+
+        private void ScrollTo(int top)
+        {
+            int total = TotalLines;
+            int visible = VisibleLines;
+            int max = Math.Max(0, total - visible);
+            int thumbHeight = Thumb(total, visible, FirstLine).Height;
+            int travel = Math.Max(1, Height - 8 - thumbHeight);
+            int desired = (int)Math.Round((double)Math.Max(0,
+                Math.Min(travel, top - 4)) * max / travel);
+            ScrollBy(desired - FirstLine);
+        }
+
+        private void ScrollBy(int lines)
+        {
+            if (lines == 0 || !editor.IsHandleCreated) return;
+            SendMessage(editor.Handle, LineScroll, IntPtr.Zero, new IntPtr(lines));
+            Invalidate();
         }
     }
 

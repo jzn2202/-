@@ -63,20 +63,15 @@ namespace ReminderMini
             title.Dock = DockStyle.Fill;
             layout.Controls.Add(title, 0, 1);
 
-            TextBox body = new TextBox();
+            DarkTextArea bodyArea = new DarkTextArea(true);
+            TextBox body = bodyArea.Editor;
             body.ReadOnly = true;
-            body.Multiline = true;
-            body.WordWrap = true;
-            body.ScrollBars = ScrollBars.Vertical;
             body.Text = string.IsNullOrWhiteSpace(reminderText) ? "时间到了" : reminderText;
             body.Font = new Font("Microsoft YaHei UI", 12F);
-            body.BackColor = TechTheme.Card;
-            body.ForeColor = TechTheme.Text;
-            body.BorderStyle = BorderStyle.None;
-            body.Dock = DockStyle.Fill;
-            body.Margin = new Padding(0, 2, 0, 7);
+            bodyArea.Dock = DockStyle.Fill;
+            bodyArea.Margin = new Padding(0, 2, 0, 7);
             body.TabStop = false;
-            layout.Controls.Add(body, 0, 2);
+            layout.Controls.Add(bodyArea, 0, 2);
 
             TechButton acknowledge = new TechButton();
             acknowledge.Text = "知道了";

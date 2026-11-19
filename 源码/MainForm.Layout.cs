@@ -162,18 +162,17 @@ namespace ReminderMini
             Label messageTitle = Label("提醒内容（可选）", 9F, TechTheme.Muted);
             messageTitle.Dock = DockStyle.Fill;
             layout.Controls.Add(messageTitle, 0, 3);
-            messageBox = InputBox(true);
-            messageBox.Dock = DockStyle.Fill;
-            messageBox.Margin = new Padding(0, 3, 0, 9);
-            messageBox.ScrollBars = ScrollBars.Vertical;
-            layout.Controls.Add(messageBox, 0, 4);
+            DarkTextArea messageArea = new DarkTextArea(true);
+            messageArea.Dock = DockStyle.Fill;
+            messageArea.Margin = new Padding(0, 3, 0, 9);
+            messageBox = messageArea.Editor;
+            layout.Controls.Add(messageArea, 0, 4);
 
-            soundBox = new CheckBox();
+            soundBox = new TechCheckBox();
             soundBox.Text = "到点播放提示音";
             soundBox.ForeColor = TechTheme.Text;
             soundBox.BackColor = Color.Transparent;
             soundBox.Dock = DockStyle.Fill;
-            soundBox.FlatStyle = FlatStyle.Flat;
             soundBox.Padding = new Padding(0, 0, 0, 0);
             layout.Controls.Add(soundBox, 0, 5);
             startButton = ActionButton("▷  启动倒计时", TechButtonKind.Primary, OnStartClicked);
@@ -204,13 +203,13 @@ namespace ReminderMini
             Label sub = Label("到点时显示", 9F, TechTheme.Muted);
             sub.Dock = DockStyle.Fill;
             layout.Controls.Add(sub, 0, 1);
-            runMessageBox = InputBox(true);
+            DarkTextArea runMessageArea = new DarkTextArea(true);
+            runMessageBox = runMessageArea.Editor;
             runMessageBox.ReadOnly = true;
             runMessageBox.TabStop = false;
-            runMessageBox.ScrollBars = ScrollBars.Vertical;
-            runMessageBox.Dock = DockStyle.Fill;
-            runMessageBox.Margin = new Padding(0, 0, 0, 12);
-            layout.Controls.Add(runMessageBox, 0, 2);
+            runMessageArea.Dock = DockStyle.Fill;
+            runMessageArea.Margin = new Padding(0, 0, 0, 12);
+            layout.Controls.Add(runMessageArea, 0, 2);
 
             TableLayoutPanel facts = new TableLayoutPanel();
             facts.Dock = DockStyle.Fill;
@@ -273,12 +272,12 @@ namespace ReminderMini
             Label label = Label(unit, 8F, TechTheme.Dim);
             label.Dock = DockStyle.Fill;
             stack.Controls.Add(label, 0, 0);
-            TextBox box = InputBox(false);
-            box.Dock = DockStyle.Fill;
-            box.Margin = new Padding(0, 0, 0, 1);
+            DarkTextArea input = new DarkTextArea(false);
+            input.Dock = DockStyle.Fill;
+            input.Margin = new Padding(0, 0, 0, 1);
+            TextBox box = input.Editor;
             box.TextAlign = HorizontalAlignment.Center;
-            box.Font = new Font("Consolas", 14F, FontStyle.Bold);
-            stack.Controls.Add(box, 0, 1);
+            stack.Controls.Add(input, 0, 1);
             return box;
         }
 
@@ -313,17 +312,6 @@ namespace ReminderMini
                 Font = new Font("Microsoft YaHei UI", size, bold ? FontStyle.Bold : FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft
             };
-        }
-
-        private static TextBox InputBox(bool multiline)
-        {
-            TextBox box = new TextBox();
-            box.Multiline = multiline;
-            box.BorderStyle = BorderStyle.FixedSingle;
-            box.BackColor = TechTheme.Input;
-            box.ForeColor = TechTheme.Text;
-            box.Font = new Font("Microsoft YaHei UI", 10F);
-            return box;
         }
 
         private static Button ActionButton(string text, TechButtonKind kind, EventHandler handler)
