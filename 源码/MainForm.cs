@@ -316,7 +316,6 @@ namespace ReminderMini
         private void ShowMainWindow()
         {
             if (exiting) return;
-            ShowInTaskbar = true;
             Show();
             WindowState = FormWindowState.Normal;
             BringToFront();
@@ -328,8 +327,8 @@ namespace ReminderMini
         {
             exiting = true;
             ticker.Stop();
-            SaveSettings();
             tray.Visible = false;
+            Hide();
             Close();
         }
 
@@ -338,9 +337,8 @@ namespace ReminderMini
             if (!exiting && e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
-                SaveSettings();
-                ShowInTaskbar = false;
                 Hide();
+                SaveSettings();
             }
             else SaveSettings();
         }

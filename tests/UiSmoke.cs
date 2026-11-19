@@ -129,9 +129,22 @@ internal static class UiSmoke
                 if (!Field<Panel>(main, "runningPanel").Visible)
                     throw new Exception("计时中未显示操作区。");
                 Console.WriteLine("即将关闭主窗口");
+                bool recreatedWhileVisible = false;
+                int handleDestroyedCount = 0;
+                EventHandler onHandleDestroyed = delegate
+                {
+                    handleDestroyedCount++;
+                    if (main.Visible) recreatedWhileVisible = true;
+                };
+                main.HandleDestroyed += onHandleDestroyed;
                 main.Close();
+                main.HandleDestroyed -= onHandleDestroyed;
                 Console.WriteLine("已关闭主窗口");
                 if (main.Visible) throw new Exception("关闭主窗口后未隐藏到托盘。");
+                if (recreatedWhileVisible)
+                    throw new Exception("关闭主窗口时可见窗口被重建，可能产生空白闪屏。");
+                if (handleDestroyedCount != 0)
+                    throw new Exception("隐藏到托盘时不应重建主窗口。");
                 Console.WriteLine("后台计时已启动");
                 probe.Start();
             }
